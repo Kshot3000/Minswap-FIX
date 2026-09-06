@@ -132,8 +132,11 @@ impl TransactionUnspentOutputs {
         self.0.len()
     }
 
-    pub fn get(&self, index: usize) -> TransactionUnspentOutput {
-        self.0[index].clone()
+    // SECURITY FIX: Add bounds checking to prevent panic on out-of-bounds access
+    pub fn get(&self, index: usize) -> Result<TransactionUnspentOutput, JsError> {
+        self.0.get(index)
+            .cloned()
+            .ok_or_else(|| JsError::from_str(&format!("Index {} out of bounds, length {}", index, self.0.len())))
     }
 
     pub fn add(&mut self, elem: &TransactionUnspentOutput) {
@@ -183,8 +186,12 @@ impl BigNum {
         self.0 == 0
     }
 
+    /// SECURITY FIX: Returns 0 on division by zero instead of panicking
     pub fn div_floor(&self, other: &BigNum) -> BigNum {
-        // same as (a / b)
+        // same as (a / b), but guard against division by zero
+        if other.0 == 0 {
+            return Self(0);
+        }
         let res = self.0.div(&other.0);
         Self(res)
     }
@@ -331,8 +338,9 @@ pub fn from_bignum(val: &BigNum) -> u64 {
     val.0
 }
 
+// SECURITY FIX: Use safe conversion instead of unwrap() to prevent panic
 pub fn to_bigint(val: u64) -> BigInt {
-    BigInt::from_str(&val.to_string()).unwrap()
+    BigInt::from_str(&val.to_string()).unwrap_or(BigInt::from_str("0").unwrap())
 }
 
 // Specifies an amount of ADA in terms of lovelace

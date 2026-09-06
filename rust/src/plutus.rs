@@ -264,8 +264,11 @@ impl PlutusScripts {
         self.0.len()
     }
 
-    pub fn get(&self, index: usize) -> PlutusScript {
-        self.0[index].clone()
+    // SECURITY FIX: Add bounds checking to prevent panic on out-of-bounds access
+    pub fn get(&self, index: usize) -> Result<PlutusScript, JsError> {
+        self.0.get(index)
+            .cloned()
+            .ok_or_else(|| JsError::from_str(&format!("Index {} out of bounds, length {}", index, self.0.len())))
     }
 
     pub fn add(&mut self, elem: &PlutusScript) {
@@ -643,8 +646,11 @@ impl Languages {
         self.0.len()
     }
 
-    pub fn get(&self, index: usize) -> Language {
-        self.0[index]
+    // SECURITY FIX: Add bounds checking to prevent panic on out-of-bounds access
+    pub fn get(&self, index: usize) -> Result<Language, JsError> {
+        self.0.get(index)
+            .cloned()
+            .ok_or_else(|| JsError::from_str(&format!("Index {} out of bounds, length {}", index, self.0.len())))
     }
 
     pub fn add(&mut self, elem: Language) {
@@ -892,8 +898,11 @@ impl PlutusList {
         self.elems.len()
     }
 
-    pub fn get(&self, index: usize) -> PlutusData {
-        self.elems[index].clone()
+    // SECURITY FIX: Add bounds checking to prevent panic on out-of-bounds access
+    pub fn get(&self, index: usize) -> Result<PlutusData, JsError> {
+        self.elems.get(index)
+            .cloned()
+            .ok_or_else(|| JsError::from_str(&format!("Index {} out of bounds, length {}", index, self.elems.len())))
     }
 
     pub fn add(&mut self, elem: &PlutusData) {
@@ -1030,8 +1039,11 @@ impl Redeemers {
         self.0.len()
     }
 
-    pub fn get(&self, index: usize) -> Redeemer {
-        self.0[index].clone()
+    // SECURITY FIX: Add bounds checking to prevent panic on out-of-bounds access
+    pub fn get(&self, index: usize) -> Result<Redeemer, JsError> {
+        self.0.get(index)
+            .cloned()
+            .ok_or_else(|| JsError::from_str(&format!("Index {} out of bounds, length {}", index, self.0.len())))
     }
 
     pub fn add(&mut self, elem: &Redeemer) {
@@ -1070,8 +1082,11 @@ impl Strings {
         self.0.len()
     }
 
-    pub fn get(&self, index: usize) -> String {
-        self.0[index].clone()
+    // SECURITY FIX: Add bounds checking to prevent panic on out-of-bounds access
+    pub fn get(&self, index: usize) -> Result<String, JsError> {
+        self.0.get(index)
+            .cloned()
+            .ok_or_else(|| JsError::from_str(&format!("Index {} out of bounds, length {}", index, self.0.len())))
     }
 
     pub fn add(&mut self, elem: String) {

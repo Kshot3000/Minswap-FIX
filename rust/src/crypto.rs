@@ -66,6 +66,12 @@ impl Bip32PrivateKey {
     /// so be careful if you see the term "xprv" as it could refer to either one
     /// our library does not require the pub (instead we compute the pub key when needed)
     pub fn from_128_xprv(bytes: &[u8]) -> Result<Bip32PrivateKey, JsError> {
+        // SECURITY FIX: Validate input length before slicing to prevent panic/DoS
+        if bytes.len() != 128 {
+            return Err(JsError::from_str(
+                "Invalid xprv length: expected 128 bytes"
+            ));
+        }
         let mut buf = [0; 96];
         buf[0..64].clone_from_slice(&bytes[0..64]);
         buf[64..96].clone_from_slice(&bytes[96..128]);

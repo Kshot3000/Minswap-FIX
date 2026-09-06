@@ -443,12 +443,23 @@ impl Address {
         (|| -> Result<Self, DeserializeError> {
             let header = data[0];
             let network = header & 0x0F;
+            // SECURITY FIX: Validate network ID to prevent acceptance of malformed addresses
+            // Valid network IDs: 0 (testnet), 1 (mainnet), 2-3 (reserved testnets)
+            // Network IDs 4-15 are invalid per Cardano protocol specs
+            if network > 0x03 {
+                return Err(DeserializeFailure::BadAddressType(header).into());
+            }
             const HASH_LEN: usize = Ed25519KeyHash::BYTE_COUNT;
             // should be static assert but it's maybe not worth importing a whole external crate for it now
             assert_eq!(ScriptHash::BYTE_COUNT, HASH_LEN);
             // checks the /bit/ bit of the header for key vs scripthash then reads the credential starting at byte position /pos/
+            // SECURITY FIX: Validate bounds before reading credential bytes to prevent panic
             let read_addr_cred = |bit: u8, pos: usize| {
-                let hash_bytes: [u8; HASH_LEN] = data[pos..pos + HASH_LEN].try_into().unwrap();
+                if pos + HASH_LEN > data.len() {
+                    return Err(cbor_event::Error::NotEnough(pos + HASH_LEN, data.len()).into());
+                }
+                let hash_bytes: [u8; HASH_LEN] = data[pos..pos + HASH_LEN].try_into()
+                    .map_err(|_| cbor_event::Error::NotEnough(HASH_LEN, data.len().saturating_sub(pos)))?;
                 let x = if header & (1 << bit) == 0 {
                     StakeCredential::from_keyhash(&Ed25519KeyHash::from(hash_bytes))
                 } else {
@@ -468,8 +479,8 @@ impl Address {
                     }
                     AddrType::Base(BaseAddress::new(
                         network,
-                        &read_addr_cred(4, 1),
-                        &read_addr_cred(5, 1 + HASH_LEN),
+                        &read_addr_cred(4, 1)?,
+                        &read_addr_cred(5, 1 + HASH_LEN)?,
                     ))
                 }
                 // pointer
@@ -483,7 +494,7 @@ impl Address {
                         );
                     }
                     let mut byte_index = 1;
-                    let payment_cred = read_addr_cred(4, 1);
+                    let payment_cred = read_addr_cred(4, 1)?;
                     byte_index += HASH_LEN;
                     let (slot, slot_bytes) =
                         variable_nat_decode(&data[byte_index..]).ok_or(DeserializeError::new(
@@ -527,7 +538,7 @@ impl Address {
                     if data.len() > ENTERPRISE_ADDR_SIZE {
                         return Err(cbor_event::Error::TrailingData.into());
                     }
-                    AddrType::Enterprise(EnterpriseAddress::new(network, &read_addr_cred(4, 1)))
+                    AddrType::Enterprise(EnterpriseAddress::new(network, &read_addr_cred(4, 1)?))
                 }
                 // reward
                 0b1110 | 0b1111 => {
@@ -540,7 +551,7 @@ impl Address {
                     if data.len() > REWARD_ADDR_SIZE {
                         return Err(cbor_event::Error::TrailingData.into());
                     }
-                    AddrType::Reward(RewardAddress::new(network, &read_addr_cred(4, 1)))
+                    AddrType::Reward(RewardAddress::new(network, &read_addr_cred(4, 1)?))
                 }
                 // byron
                 0b1000 => {

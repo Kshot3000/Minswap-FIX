@@ -38,6 +38,8 @@ pub enum DeserializeFailure {
         found: Key,
         expected: Vec<Key>,
     },
+    // SECURITY FIX: Add HexDecode error variant for safe hex decoding
+    HexDecode(String),
     MandatoryFieldMissing(Key),
     Metadata(JsError),
     NoVariantMatched,
@@ -110,6 +112,9 @@ impl std::fmt::Display for DeserializeError {
             }
             DeserializeFailure::FixedValuesMismatch { found, expected } => {
                 write!(f, "Expected fixed value {:?} found {}", expected, found)
+            }
+            DeserializeFailure::HexDecode(msg) => {
+                write!(f, "Hex decode failed: {}", msg)
             }
             DeserializeFailure::MandatoryFieldMissing(key) => {
                 write!(f, "Mandatory field {} not found", key)

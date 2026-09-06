@@ -72,9 +72,13 @@ macro_rules! from_hex {
         }
     };
     // Uses Deserialize trait to auto-generate one
+    // SECURITY FIX: Use map_err instead of unwrap() to prevent panic on invalid hex
     ($name:ident) => {
         from_hex!($name, hex_str, {
-            let mut raw = Deserializer::from(std::io::Cursor::new(hex::decode(hex_str).unwrap()));
+            let data = hex::decode(hex_str).map_err(|e| {
+                DeserializeError::new("from_hex", DeserializeFailure::HexDecode(e.to_string()))
+            })?;
+            let mut raw = Deserializer::from(std::io::Cursor::new(data));
             Self::deserialize(&mut raw)
         });
     };

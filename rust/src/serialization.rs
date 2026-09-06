@@ -201,7 +201,9 @@ impl Deserialize for TransactionInputs {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(TransactionInput::deserialize(raw)?);
@@ -236,7 +238,9 @@ impl Deserialize for TransactionOutputs {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(TransactionOutput::deserialize(raw)?);
@@ -271,7 +275,9 @@ impl Deserialize for Certificates {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(Certificate::deserialize(raw)?);
@@ -1284,7 +1290,9 @@ impl Deserialize for Ed25519KeyHashes {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(Ed25519KeyHash::deserialize(raw)?);
@@ -1319,7 +1327,9 @@ impl Deserialize for Relays {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(Relay::deserialize(raw)?);
@@ -2138,7 +2148,9 @@ impl Deserialize for StakeCredentials {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(StakeCredential::deserialize(raw)?);
@@ -2174,7 +2186,9 @@ impl Deserialize for MIRToStakeCredentials {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 let key = StakeCredential::deserialize(raw)?;
@@ -2775,7 +2789,9 @@ impl Deserialize for RewardAddresses {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(RewardAddress::deserialize(raw)?);
@@ -2811,7 +2827,9 @@ impl Deserialize for Withdrawals {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 let key = RewardAddress::deserialize(raw)?;
@@ -3609,7 +3627,9 @@ impl Deserialize for NativeScripts {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(NativeScript::deserialize(raw)?);
@@ -3701,7 +3721,9 @@ impl Deserialize for GenesisHashes {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(GenesisHash::deserialize(raw)?);
@@ -3736,7 +3758,9 @@ impl Deserialize for ScriptHashes {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(ScriptHash::deserialize(raw)?);
@@ -3772,7 +3796,9 @@ impl Deserialize for ProposedProtocolParameterUpdates {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 let key = GenesisHash::deserialize(raw)?;
@@ -4433,7 +4459,9 @@ impl Deserialize for TransactionBodies {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(TransactionBody::deserialize(raw)?);
@@ -4468,7 +4496,9 @@ impl Deserialize for TransactionWitnessSets {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(TransactionWitnessSet::deserialize(raw)?);
@@ -4504,7 +4534,9 @@ impl Deserialize for AuxiliaryDataSet {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 let key = TransactionIndex::deserialize(raw)?;
@@ -4574,7 +4606,9 @@ impl Deserialize for Block {
                         cbor_event::Len::Indefinite => true,
                     } {
                         if raw.cbor_type()? == CBORType::Special {
-                            assert_eq!(raw.special()?, CBORSpecial::Break);
+                            if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                             break;
                         }
                         arr.push(TransactionIndex::deserialize(raw)?);
@@ -4908,7 +4942,9 @@ impl Deserialize for AssetNames {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 arr.push(AssetName::deserialize(raw)?);
@@ -4944,7 +4980,9 @@ impl Deserialize for Assets {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 let key = AssetName::deserialize(raw)?;
@@ -4987,7 +5025,9 @@ impl Deserialize for MultiAsset {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 let key = PolicyID::deserialize(raw)?;
@@ -5030,7 +5070,9 @@ impl Deserialize for MintAssets {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 let key = AssetName::deserialize(raw)?;
@@ -5073,7 +5115,9 @@ impl Deserialize for Mint {
                 cbor_event::Len::Indefinite => true,
             } {
                 if raw.cbor_type()? == CBORType::Special {
-                    assert_eq!(raw.special()?, CBORSpecial::Break);
+                    if raw.special()? != CBORSpecial::Break {
+                        return Err(DeserializeFailure::EndingBreakMissing.into());
+                    }
                     break;
                 }
                 let key = PolicyID::deserialize(raw)?;

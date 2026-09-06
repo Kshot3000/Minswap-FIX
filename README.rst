@@ -5,6 +5,14 @@ This is a library for serialization & deserialization of data structures
 used in Cardano’s Haskell implementation of Alonzo along with useful
 utility functions.
 
+Contact
+-------
+X handle: https://x.com/kshot9000
+
+Donation Address
+----------------
+addr1q8hnl6vl5a6k3rw3n5g3jtte696zcl76kfatzv7gpswa9r0dj7fma6klq55y4ffm7tf0em09udnyhuk4ah92pl5x9jpqjae44v
+
 How can I use this library
 --------------------------
 

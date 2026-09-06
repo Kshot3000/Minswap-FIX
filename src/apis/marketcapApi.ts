@@ -50,9 +50,11 @@ export class MarketCapAPI {
       const treasuryRaw = tokenInfo.treasuryOnChain;
 
       const treasury = await this.adapter.getAmountInAddress(treasuryRaw, tokenId);
+      // SECURITY FIX: Clamp to zero to prevent negative market cap if treasury > total supply
+      const adjustedTotal = total - treasury < 0n ? 0n : total - treasury;
       return {
-        total: formatNumber(total - treasury, decimals),
-        circulating: formatNumber(total - treasury, decimals),
+        total: formatNumber(adjustedTotal, decimals),
+        circulating: formatNumber(adjustedTotal, decimals),
       };
     }
 
@@ -72,15 +74,21 @@ export class MarketCapAPI {
         return nullResponse;
       }
 
+      // SECURITY FIX: Clamp to zero to prevent negative market cap
+      const adjustedTotal1 = total - burn < 0n ? 0n : total - burn;
+      const adjustedCirculating1 = circulatingOnChain - treasury < 0n ? 0n : circulatingOnChain - treasury;
       return {
-        total: formatNumber(total - burn, decimals),
-        circulating: formatNumber(circulatingOnChain - treasury, decimals),
+        total: formatNumber(adjustedTotal1, decimals),
+        circulating: formatNumber(adjustedCirculating1, decimals),
       };
     }
 
+    // SECURITY FIX: Clamp to zero to prevent negative market cap
+    const adjustedTotal2 = total - burn < 0n ? 0n : total - burn;
+    const adjustedCirculating2 = total - treasury - burn < 0n ? 0n : total - treasury - burn;
     return {
-      total: formatNumber(total - burn, decimals),
-      circulating: formatNumber(total - treasury - burn, decimals),
+      total: formatNumber(adjustedTotal2, decimals),
+      circulating: formatNumber(adjustedCirculating2, decimals),
     };
   }
 

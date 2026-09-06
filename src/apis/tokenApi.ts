@@ -5,6 +5,14 @@ import path from "node:path";
 import { TOKENS_DIR } from "../consts";
 import type { GetTokenOptions, TokenMetadata } from "../types";
 
+/**
+ * Sanitizes token ID to prevent path traversal attacks.
+ * Token IDs on Cardano are strictly hexadecimal strings.
+ */
+function sanitizeTokenId(tokenId: string): string {
+  return tokenId.replace(/[^a-fA-F0-9]/g, "");
+}
+
 export class TokenAPI {
   /**
    * Get token's metadata by its ID.
@@ -14,11 +22,14 @@ export class TokenAPI {
   public async getToken(tokenId: string) {
     try {
       const __dirname = import.meta.dirname;
-      const filePath = path.join(__dirname, `${TOKENS_DIR}/${tokenId}.yaml`);
+      // SECURITY FIX: Sanitize tokenId to prevent path traversal (e.g., "../")
+      const safeTokenId = sanitizeTokenId(tokenId);
+      const filePath = path.join(__dirname, `${TOKENS_DIR}/${safeTokenId}.yaml`);
       const tokenFileData = fs.readFileSync(filePath, "utf-8");
+      // SECURITY FIX: Use safeLoad schema to prevent arbitrary code execution via malicious YAML
       const tokenData: TokenMetadata = {
         tokenId,
-        ...(load(tokenFileData) as Omit<TokenMetadata, "tokenId">),
+        ...(load(tokenFileData, { schema: require("js-yaml").JSON_SCHEMA }) as Omit<TokenMetadata, "tokenId">),
       };
       return tokenData;
     } catch (e) {

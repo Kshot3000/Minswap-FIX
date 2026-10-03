@@ -13,10 +13,10 @@ socialLinks:
 
 verified: true
 
-maxSupply: 5_000_000_000_000000
+maxSupply: 5000000000000000
 
 burn:
-  - 2_000_000_000_000000
+  - 2000000000000000
   - addr1w8qmxkacjdffxah0l3qg8hq2pmvs58q8lcy42zy9kda2ylc6dy5r4
 
 decimals: 6

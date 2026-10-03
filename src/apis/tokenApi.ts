@@ -1,17 +1,10 @@
-import { load } from "js-yaml";
+import { JSON_SCHEMA, load } from "js-yaml";
 
 import fs from "node:fs";
 import path from "node:path";
 import { TOKENS_DIR } from "../consts";
 import type { GetTokenOptions, TokenMetadata } from "../types";
-
-/**
- * Sanitizes token ID to prevent path traversal attacks.
- * Token IDs on Cardano are strictly hexadecimal strings.
- */
-function sanitizeTokenId(tokenId: string): string {
-  return tokenId.replace(/[^a-fA-F0-9]/g, "");
-}
+import { sanitizeTokenId } from "../utils";
 
 export class TokenAPI {
   /**
@@ -22,14 +15,27 @@ export class TokenAPI {
   public async getToken(tokenId: string) {
     try {
       const __dirname = import.meta.dirname;
-      // SECURITY FIX: Sanitize tokenId to prevent path traversal (e.g., "../")
+      // SECURITY FIX: Reject non-hex token IDs to prevent path traversal (e.g., "../")
       const safeTokenId = sanitizeTokenId(tokenId);
-      const filePath = path.join(__dirname, `${TOKENS_DIR}/${safeTokenId}.yaml`);
+      if (safeTokenId === null) {
+        return null;
+      }
+      const tokensDir = path.resolve(__dirname, TOKENS_DIR);
+      const filePath = path.resolve(tokensDir, `${safeTokenId}.yaml`);
+      // Defense in depth: the resolved file must stay inside the tokens directory.
+      if (!filePath.startsWith(tokensDir + path.sep)) {
+        return null;
+      }
       const tokenFileData = fs.readFileSync(filePath, "utf-8");
-      // SECURITY FIX: Use safeLoad schema to prevent arbitrary code execution via malicious YAML
+      // SECURITY FIX: Parse with the restrictive JSON_SCHEMA so malicious YAML
+      // cannot construct arbitrary JavaScript types. JSON_SCHEMA is imported
+      // statically — in this ESM package ("type": "module") a CommonJS
+      // require of js-yaml throws `ReferenceError: require is not defined`,
+      // which silently made every getToken() call return null in the
+      // published ES bundle. (Guarded in test/tokenApi.test.ts.)
       const tokenData: TokenMetadata = {
         tokenId,
-        ...(load(tokenFileData, { schema: require("js-yaml").JSON_SCHEMA }) as Omit<TokenMetadata, "tokenId">),
+        ...(load(tokenFileData, { schema: JSON_SCHEMA }) as Omit<TokenMetadata, "tokenId">),
       };
       return tokenData;
     } catch (e) {

@@ -6,6 +6,19 @@ import { TOKENS_DIR } from "../consts";
 import type { GetTokenOptions, TokenMetadata } from "../types";
 import { sanitizeTokenId } from "../utils";
 
+/**
+ * Directory containing this module — and, in the published bundles, the
+ * copied `tokens/` data directory. The ES bundle reads it from
+ * `import.meta.dirname`. esbuild compiles that expression to
+ * `undefined` in the CommonJS bundle (build/index.cjs), where Node
+ * instead provides the module-scoped `__dirname` global natively, so
+ * fall back to it — with only the import.meta form, every TokenAPI call
+ * in the CJS bundle threw on `path.resolve(undefined, …)`.
+ */
+function moduleDir(): string {
+  return typeof import.meta.dirname === "string" ? import.meta.dirname : __dirname;
+}
+
 export class TokenAPI {
   /**
    * Get token's metadata by its ID.
@@ -14,7 +27,7 @@ export class TokenAPI {
    */
   public async getToken(tokenId: string) {
     try {
-      const __dirname = import.meta.dirname;
+      const __dirname = moduleDir();
       // SECURITY FIX: Reject non-hex token IDs to prevent path traversal (e.g., "../")
       const safeTokenId = sanitizeTokenId(tokenId);
       if (safeTokenId === null) {
@@ -50,7 +63,7 @@ export class TokenAPI {
    * @returns The list of all tokens' metadata.
    */
   public async getTokens(options?: GetTokenOptions) {
-    const __dirname = import.meta.dirname;
+    const __dirname = moduleDir();
     const directory = path.join(__dirname, TOKENS_DIR);
     const tokenList: TokenMetadata[] = [];
     const files = fs.readdirSync(directory);

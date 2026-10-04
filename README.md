@@ -54,11 +54,25 @@ A verification pass over the fixes above found that two of them did not actually
 
 ---
 
+## 🔧 Follow-up Audit — 2026-10-04
+
+### 10. CommonJS entry point broken twice over (Critical for `require()` consumers)
+*   **Bug 1 — wrong extension**: `package.json` declares `"type": "module"`, so Node loads every `.js` file as ESM — but `main` / `exports.require` pointed at `build/index.js`, which Rollup fills with CommonJS `exports.…` code. `require("@minswap/minswap-tokens")` therefore died with `exports is not defined`; only ESM `import` consumers could use the package. **Fix**: the CommonJS bundle is now emitted as `build/index.cjs` (`main` + `exports.require` updated to match; Rollup derives its output names from `main`). Version bumped to 1.0.10.
+*   **Bug 2 — `import.meta.dirname` does not exist in the CJS bundle**: even with the extension fixed, esbuild compiles `import.meta.dirname` to `undefined` in CommonJS output, so every `TokenAPI` call in that bundle threw on `path.resolve(undefined, …)` while the identical code worked in the ES bundle. **Fix**: `tokenApi.ts` resolves its directory via `moduleDir()` — `import.meta.dirname` where available, otherwise the module-scoped `__dirname` global Node provides to CommonJS modules.
+*   **Verified end-to-end**: after a clean build, BOTH entries load the full dataset through the package's own `exports` map — `require()` and `import` each return all 599 tokens from `getTokens()`, `getToken()` resolves a real token, and traversal IDs return `null`.
+
+### 11. Supply-amount parser failed open on malformed responses (Medium)
+*   **Bug**: `getAmountFromURL()` parsed the (untrusted) response body with `BigInt()` coercion and a two-way `split(".")`. An empty or whitespace body became `0n` — a fabricated zero supply (callers read `null`, not `0`, as "unknown"); `"1.5.2"` silently dropped the second fraction and returned the amount for `"1.5"`; negative amounts (`"-100"`, `"-1.5"`) were accepted; `"0x10"` was accepted as 16 via BigInt's radix-prefix parsing.
+*   **Fix**: the body must now be a strict non-negative decimal (`digits[.digits]`, surrounding whitespace trimmed) whose fraction fits in `decimals` digits; anything else — and a non-integer or negative `decimals` argument — resolves to `null`, matching the function's fail-closed contract.
+
+---
+
 ## 📂 Files Modified
-*   `src/apis/tokenApi.ts` - Path traversal rejection, safe YAML parsing (static `JSON_SCHEMA` import), in-directory path check.
+*   `src/apis/tokenApi.ts` - Path traversal rejection, safe YAML parsing (static `JSON_SCHEMA` import), in-directory path check, dual-bundle directory resolution (`moduleDir()`).
 *   `src/apis/marketcapApi.ts` - Market cap logic clamping.
-*   `src/utils.ts` - SSRF prevention (range-based URL validation, redirect re-validation, fetch timeout) and token-ID validation.
+*   `src/utils.ts` - SSRF prevention (range-based URL validation, redirect re-validation, fetch timeout), token-ID validation, and strict fail-closed parsing of supply-amount responses.
 *   `src/consts.ts` - Stricter regex patterns; `URL_REGEX` escapes repaired so the pattern compiles, `%` allowed in URL paths.
+*   `package.json` / `rollup.config.js` - CommonJS bundle emitted as `build/index.cjs` so `require()` works under `"type": "module"` (v1.0.10).
 *   `src/tokens/eb7a93eb….yaml` - Extension corrected from `.yml` so the token is reachable via the API.
 *   `src/tokens/*.yaml` (5 files) - Underscore-grouped supply amounts normalized to plain integers.
 *   `test/security.test.ts`, `test/tokenApi.test.ts` - Regression tests for every fix above.
@@ -69,7 +83,7 @@ A verification pass over the fixes above found that two of them did not actually
 ```
 pnpm test        # or: npx jest
 ```
-27 tests across 3 suites: the original utils tests, the SSRF truth table + redirect/timeout behaviour + `URL_REGEX` guards (`test/security.test.ts`), and token-ID validation, TokenAPI source guards, dataset hygiene + full schema validation, and market-cap clamping (`test/tokenApi.test.ts`). The assembled bundle is also verified end-to-end (rollup build + Node ESM import: every token in `src/tokens` loads, traversal IDs return `null`) — necessary because ts-jest/CommonJS cannot load the ESM-only `tokenApi.ts` module.
+32 tests across 3 suites: the original utils tests, the SSRF truth table + redirect/timeout behaviour + strict supply-amount parsing + `URL_REGEX` guards (`test/security.test.ts`), and token-ID validation, TokenAPI source guards, package entry-point guards, dataset hygiene + full schema validation, and market-cap clamping (`test/tokenApi.test.ts`). The assembled bundles are also verified end-to-end (rollup build + Node ESM import AND CommonJS require through the package `exports` map: every token in `src/tokens` loads through both entries, traversal IDs return `null`) — necessary because ts-jest/CommonJS cannot load the ESM-only `tokenApi.ts` module.
 
 ---
 

@@ -143,6 +143,35 @@ describe("getAmountFromURL", () => {
     globalThis.fetch = realFetch;
   });
 
+  test("tolerates surrounding whitespace, rejects a fraction longer than decimals", async () => {
+    mockFetch(() => ({ status: 200, body: " 12345\n" }));
+    await expect(getAmountFromURL("https://api.example.com/supply", 0)).resolves.toBe(12345n);
+    mockFetch(() => ({ status: 200, body: "1.234" }));
+    await expect(getAmountFromURL("https://api.example.com/supply", 2)).resolves.toBeNull();
+    globalThis.fetch = realFetch;
+  });
+
+  test("never fabricates an amount from an empty or malformed body", async () => {
+    // Regression guards: the previous parser coerced "" / " " to 0n
+    // (BigInt("") === 0n — a fabricated zero supply), silently dropped
+    // the second fraction of "1.5.2", accepted negative amounts, and
+    // accepted radix-prefixed "0x10" as 16. Every one of these bodies
+    // is untrusted network data and must resolve to null instead.
+    for (const body of ["", " ", "\n", "1.5.2", "-100", "-1.5", "0x10", "0b101", "1e6", "abc", ".5", "5.", "1,000"]) {
+      mockFetch(() => ({ status: 200, body }));
+      await expect(getAmountFromURL("https://api.example.com/supply", 2)).resolves.toBeNull();
+    }
+    globalThis.fetch = realFetch;
+  });
+
+  test("rejects a non-integer or negative decimals argument without fetching", async () => {
+    const fn = mockFetch(() => ({ status: 200, body: "100" }));
+    await expect(getAmountFromURL("https://api.example.com/supply", -1)).resolves.toBeNull();
+    await expect(getAmountFromURL("https://api.example.com/supply", 1.5)).resolves.toBeNull();
+    expect(fn).not.toHaveBeenCalled();
+    globalThis.fetch = realFetch;
+  });
+
   test("follows a redirect only to another validated public URL", async () => {
     mockFetch((url) =>
       url.includes("old.example.com")

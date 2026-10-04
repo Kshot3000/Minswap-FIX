@@ -230,6 +230,9 @@ export function sanitizeTokenId(tokenId: string): string | null {
 
 const MAX_REDIRECTS = 3;
 const FETCH_TIMEOUT_MS = 10_000;
+/** Strict non-negative decimal amount: digits, plus at most one
+ * fractional part. Anything else in a supply response fails closed. */
+const AMOUNT_REGEX = /^(\d+)(?:\.(\d+))?$/;
 
 /**
  * Fetches a decimal amount from an external supply endpoint.
@@ -240,11 +243,17 @@ const FETCH_TIMEOUT_MS = 10_000;
  *   let a public URL bounce the request to an internal address;
  *   redirects are therefore followed manually and re-validated.
  * - Requests time out after 10s instead of hanging an unattended scan.
+ * - The response body must be a strict non-negative decimal amount;
+ *   empty, negative, radix-prefixed ("0x…"), or multiply-dotted bodies
+ *   resolve to null instead of being coerced into a number.
  * - Any failure (blocked URL, non-2xx response, network error) resolves
  *   to null, matching the declared `bigint | null` contract — callers
  *   already translate null into a null market-cap response.
  */
 export async function getAmountFromURL(url: string, decimals: number): Promise<bigint | null> {
+  if (!Number.isInteger(decimals) || decimals < 0) {
+    return null;
+  }
   let currentURL = url;
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
     if (!isValidExternalURL(currentURL)) {
@@ -280,17 +289,27 @@ export async function getAmountFromURL(url: string, decimals: number): Promise<b
       return null;
     }
 
-    let amount = await response.text();
-    // format to support APIs which return amount with decimal places
-    if (amount.includes(".")) {
-      const [prefix, postfix] = amount.split(".");
-      if (postfix.length > decimals) {
-        return null;
-      }
-      amount = prefix + postfix.padEnd(decimals, "0");
+    // Parse the body as a strict non-negative decimal amount, failing
+    // closed (null) on anything else. The body is untrusted network
+    // data, and the previous parser failed open in several ways:
+    // - "" or whitespace became 0n (BigInt("") === 0n) — a fabricated
+    //   zero supply for an endpoint that returned nothing;
+    // - "1.5.2" silently dropped the second fraction and returned the
+    //   amount for "1.5" (split() destructuring ignored the rest);
+    // - "-100" / "-1.5" were accepted as negative amounts;
+    // - "0x10" was accepted as 16 (BigInt parses radix prefixes).
+    // Only digits with at most one fractional part are accepted, and
+    // the fraction must fit in `decimals` digits (as before).
+    const rawAmount = (await response.text()).trim();
+    const amountMatch = AMOUNT_REGEX.exec(rawAmount);
+    if (!amountMatch) {
+      return null;
     }
-
-    return tryParseBigInt(amount);
+    const [, integerPart, fractionalPart = ""] = amountMatch;
+    if (fractionalPart.length > decimals) {
+      return null;
+    }
+    return tryParseBigInt(integerPart + fractionalPart.padEnd(decimals, "0"));
   }
   return null;
 }

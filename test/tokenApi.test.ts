@@ -54,6 +54,48 @@ describe("TokenAPI source guards", () => {
     expect(tokenApiSource).toMatch(/load\(tokenFileData,\s*\{\s*schema:\s*JSON_SCHEMA\s*\}\)/);
     expect(tokenApiSource).toMatch(/import\s*\{\s*sanitizeTokenId\s*\}\s*from\s*"\.\.\/utils"/);
   });
+
+  test("resolves the module directory in both published bundles", () => {
+    // The ES bundle uses import.meta.dirname; esbuild compiles that
+    // expression to undefined in the CommonJS bundle, where Node
+    // provides the module-scoped __dirname global instead. Guard the
+    // fallback so require() consumers keep a working TokenAPI (the
+    // assembled bundles are also exercised end-to-end — see README).
+    expect(tokenApiSource).toContain("typeof import.meta.dirname");
+    expect(tokenApiSource).toContain("const __dirname = moduleDir();");
+  });
+});
+
+describe("package entry points", () => {
+  test("the CommonJS entry uses a .cjs extension under a module package", () => {
+    // Regression guard: package.json declares "type": "module", so
+    // Node loads every .js file as ESM — but Rollup writes CommonJS
+    // (`exports.…`) into the require() entry. Pointing main /
+    // exports.require at build/index.js therefore made require() of
+    // the package fail with "exports is not defined", while the ESM
+    // entry worked — the mirror image of the TokenAPI require() bug
+    // guarded above. Only a .cjs extension makes Node load the bundle
+    // as CommonJS.
+    const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"), "utf-8")) as {
+      type?: string;
+      main?: string;
+      module?: string;
+      types?: string;
+      exports?: Record<string, Record<string, string>>;
+    };
+    expect(pkg.type).toBe("module");
+    expect(pkg.main?.endsWith(".cjs")).toBe(true);
+    expect(pkg.exports?.["."]?.require).toBe(`./${pkg.main}`);
+    expect(pkg.exports?.["."]?.import?.endsWith(".es.js")).toBe(true);
+    expect(pkg.exports?.["."]?.types?.endsWith(".d.ts")).toBe(true);
+    expect(pkg.module?.endsWith(".es.js")).toBe(true);
+    expect(pkg.types?.endsWith(".d.ts")).toBe(true);
+
+    const rollupConfig = fs.readFileSync(path.join(process.cwd(), "rollup.config.js"), "utf-8");
+    expect(rollupConfig).toContain("name}.cjs`,");
+    expect(rollupConfig).toContain('format: "cjs"');
+    expect(rollupConfig).not.toContain("name}.js`,");
+  });
 });
 
 describe("token dataset hygiene", () => {

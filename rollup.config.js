@@ -4,7 +4,12 @@ import esbuild from "rollup-plugin-esbuild";
 
 const externalRegex = /^[./]/;
 
-const name = require("./package.json").main.replace(/\.js$/, "");
+// package.json "main" is build/index.cjs: this package is
+// "type": "module", so a CommonJS bundle written to a .js file is
+// loaded by Node as ESM and dies on its `exports` references
+// ("exports is not defined") for every require() consumer. The bundle
+// base name is derived from "main" with whatever extension it carries.
+const name = require("./package.json").main.replace(/\.[^.]+$/, "");
 
 const bundle = (config) => ({
   ...config,
@@ -22,7 +27,7 @@ export default [
     ],
     output: [
       {
-        file: `${name}.js`,
+        file: `${name}.cjs`,
         format: "cjs",
         sourcemap: true,
       },
